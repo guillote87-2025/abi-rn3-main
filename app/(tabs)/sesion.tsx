@@ -5,7 +5,7 @@ import { GoogleSignin, GoogleSigninButton, isSuccessResponse } from '@react-nati
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -20,7 +20,7 @@ export default function sesion()
   const router = useRouter();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [tipo, setTipo] = useState(false);
+  const [activeTab, setActiveTab] = useState<'login' | 'register'>('login'); // Usamos tabs en lugar de switch
   const [error, setError] = useState('');
   const [iniciando, setIniciando] = useState(false);
   const [tipoRegistro, setTipoRegistro] = useState(0);
@@ -29,12 +29,11 @@ export default function sesion()
   const [password, setPassword] = useState('');
   const [confirmacion, setConfirmacion] = useState('');
 
-  async function saveUsuario(altemail : string)
-  {
+  async function saveUsuario(altemail: string) {
     let respuesta = await fetch('http://localhost:3031/getUsuarioData', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({email: (emailusu == '' ? altemail : emailusu)}),
+      body: JSON.stringify({ email: (emailusu == '' ? altemail : emailusu) }),
     });
     let data2 = await respuesta.json();
     await AsyncStorage.setItem('email', (emailusu == '' ? altemail : emailusu));
@@ -45,131 +44,110 @@ export default function sesion()
     return 0;
   }
 
-  async function handleGoogleSignIn()
-  {
-    try 
-    {
+  async function handleGoogleSignIn() {
+    try {
       setIsSubmitting(true);
       await GoogleSignin.hasPlayServices();
       const response = await GoogleSignin.signIn();
-      if(isSuccessResponse(response))
-      {
+      if (isSuccessResponse(response)) {
         const { idToken, user } = response.data;
         const { email } = user;
         setEmail(email);
-        
+
         let res = await fetch('http://localhost:3031/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({email: email, password: '', isGoogleUser: 'true'}),
+          body: JSON.stringify({ email: email, password: '', isGoogleUser: 'true' }),
         });
         let data = await res.json();
-        if(data == false)
-        {
+        if (data == false) {
           res = await fetch('http://localhost:3031/addUsuario', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({email: email, password: '', isGoogleUser: 'true'}),
+            body: JSON.stringify({ email: email, password: '', isGoogleUser: 'true' }),
           });
           data = await res.json();
 
           setIniciando(true);
-        }
-        else
-        {
+        } else {
           await saveUsuario(email);
           router.push("/");
         }
       }
       setIsSubmitting(false);
-    }
-    catch(error)
-    {
+    } catch (error) {
       setIsSubmitting(false);
     }
   }
 
-  function validar()
-  {
+  function validar() {
     setError('');
     let valido = true;
     let emailRegex = /^[-\w.%+]{1,64}@(?:[A-Z0-9-]{1,63}\.){1,125}[A-Z]{2,63}$/i;
-    if(!emailRegex.test(emailusu))
-    {
-        valido = false;
-        setError('Email Invalido');
+    if (!emailRegex.test(emailusu)) {
+      valido = false;
+      setError('Email Inválido');
     }
-    if(password.length < 6 || password.length > 24)
-    {
-        valido = false;
-        setError('Contraseña debe ser de al entre 6 y 24 caracteres');
+    if (password.length < 6 || password.length > 24) {
+      valido = false;
+      setError('Contraseña debe ser de entre 6 y 24 caracteres');
     }
     return valido;
   }
 
-  async function inicioSesion()
-  {
+  async function inicioSesion() {
     setError('');
-    if(!validar()) return;
-    
+    if (!validar()) return;
+
     let res = await fetch('http://localhost:3031/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({email: emailusu, password: password, isGoogleUser: 'false'}),
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: emailusu, password: password, isGoogleUser: 'false' }),
     });
     let data = await res.json();
-    if(data == false)
-    {
-        setError('Usuario Inexistente');
-    }
-    else
-    {
+    if (data == false) {
+      setError('Usuario Inexistente');
+    } else {
       await saveUsuario('');
       router.push("/");
     }
   }
 
-  async function registro()
-  {
+  async function registro() {
     setError('');
-    if(!validar()) return;
-    if(confirmacion != password)
-    {
+    if (!validar()) return;
+    if (confirmacion != password) {
       setError('Contraseña Incorrecta');
       return;
-    } 
-    
+    }
+
     let res = await fetch('http://localhost:3031/addUsuario', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({email: emailusu, password: password, isGoogleUser: 'false'}),
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: emailusu, password: password, isGoogleUser: 'false' }),
     });
     let data = await res.json();
-    if(data == 1)
-    {
-        setError('Email Ocupado');
-    }
-    else setIniciando(true);
+    if (data == 1) {
+      setError('Email Ocupado');
+    } else setIniciando(true);
   }
 
-  async function sendJugador(formData: FormData) : Promise<number>
-  {
+  async function sendJugador(formData: FormData): Promise<number> {
     formData.append('email', emailusu);
     await fetch('http://localhost:3031/addJugador', {
-        method: 'POST',
-        body: formData,
+      method: 'POST',
+      body: formData,
     });
     await saveUsuario('');
     router.push("/");
     return 1;
   }
 
-  async function sendDirector(formData: FormData) : Promise<number>
-  {
+  async function sendDirector(formData: FormData): Promise<number> {
     formData.append('email', emailusu);
     await fetch('http://localhost:3031/addDirector', {
-        method: 'POST',
-        body: formData,
+      method: 'POST',
+      body: formData,
     });
     await saveUsuario('');
     router.push("/");
@@ -189,23 +167,36 @@ export default function sesion()
               <Text style={styles.title}>Gestiona tu cuenta</Text>
               <Text style={styles.subtitle}>Inicia sesión o regístrate para continuar</Text>
             </View>
-            
-            <View style={styles.switchContainer}>
-              <Text style={[styles.switchLabel, !tipo && styles.switchLabelActive]}>Iniciar Sesión</Text>
-              <Switch
-                onValueChange={setTipo}
-                value={tipo}
-                trackColor={{ false: '#E0E0E0', true: '#FFCDD2' }}
-                thumbColor={tipo ? '#E53935' : '#757575'}
-              />
-              <Text style={[styles.switchLabel, tipo && styles.switchLabelActive]}>Registrarse</Text>
+
+            {/* Pestañas para elegir Login/Registro */}
+            <View style={styles.tabContainer}>
+              <Pressable
+                style={[styles.tab, activeTab === 'login' && styles.activeTab]}
+                onPress={() => setActiveTab('login')}
+              >
+                <Text style={[styles.tabText, activeTab === 'login' && styles.activeTabText]}>
+                  🔐 Iniciar Sesión
+                </Text>
+                {activeTab === 'login' && <View style={styles.tabIndicator} />}
+              </Pressable>
+              
+              <Pressable
+                style={[styles.tab, activeTab === 'register' && styles.activeTab]}
+                onPress={() => setActiveTab('register')}
+              >
+                <Text style={[styles.tabText, activeTab === 'register' && styles.activeTabText]}>
+                  ✨ Registrarse
+                </Text>
+                {activeTab === 'register' && <View style={styles.tabIndicator} />}
+              </Pressable>
             </View>
 
+            {/* Formulario dinámico según la pestaña activa */}
             <View style={styles.formContainer}>
               <Text style={styles.formTitle}>
-                {tipo ? '✨ Crear nueva cuenta' : '🔐 Acceder a tu cuenta'}
+                {activeTab === 'login' ? 'Accede a tu cuenta' : 'Crea tu cuenta gratuita'}
               </Text>
-              
+
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Correo electrónico</Text>
                 <TextInput
@@ -229,7 +220,7 @@ export default function sesion()
                 />
               </View>
 
-              {tipo && (
+              {activeTab === 'register' && (
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Confirmar contraseña</Text>
                   <TextInput
@@ -241,14 +232,15 @@ export default function sesion()
                   />
                 </View>
               )}
-              
+
               <Pressable
                 onPress={() => {
-                  tipo ? registro() : inicioSesion();
+                  activeTab === 'login' ? inicioSesion() : registro();
                 }}
-                style={({pressed}) => [styles.boton, pressed && styles.botonPressed]}>
+                style={({ pressed }) => [styles.boton, pressed && styles.botonPressed]}
+              >
                 <Text style={styles.botonText}>
-                  {tipo ? '🚀 Registrarse' : '🔓 Iniciar Sesión'}
+                  {activeTab === 'login' ? '🔓 Iniciar Sesión' : '🚀 Crear Cuenta'}
                 </Text>
               </Pressable>
 
@@ -288,7 +280,7 @@ export default function sesion()
 
             <View style={styles.roleContainer}>
               <Pressable
-                style={({pressed}) => [styles.roleCard, pressed && styles.roleCardPressed]}
+                style={({ pressed }) => [styles.roleCard, pressed && styles.roleCardPressed]}
                 onPress={() => {
                   router.push('/');
                 }}>
@@ -298,7 +290,7 @@ export default function sesion()
               </Pressable>
 
               <Pressable
-                style={({pressed}) => [styles.roleCard, pressed && styles.roleCardPressed]}
+                style={({ pressed }) => [styles.roleCard, pressed && styles.roleCardPressed]}
                 onPress={() => {
                   setTipoRegistro(1);
                 }}>
@@ -308,7 +300,7 @@ export default function sesion()
               </Pressable>
 
               <Pressable
-                style={({pressed}) => [styles.roleCard, pressed && styles.roleCardPressed]}
+                style={({ pressed }) => [styles.roleCard, pressed && styles.roleCardPressed]}
                 onPress={() => {
                   setTipoRegistro(2);
                 }}>
@@ -362,29 +354,46 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
   },
-  switchContainer: {
+  // Estilos para pestañas
+  tabContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: '#ffffff',
     borderRadius: 12,
-    padding: 16,
+    padding: 4,
     marginBottom: 20,
     shadowColor: '#000',
     shadowOpacity: 0.05,
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
     elevation: 2,
   },
-  switchLabel: {
-    fontSize: 16,
-    marginHorizontal: 12,
-    color: '#999',
-    fontWeight: '500',
+  tab: {
+    flex: 1,
+    paddingVertical: 14,
+    alignItems: 'center',
+    position: 'relative',
   },
-  switchLabelActive: {
+  activeTab: {
+    backgroundColor: '#FFEBEE',
+    borderRadius: 8,
+  },
+  tabText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#666',
+  },
+  activeTabText: {
     color: '#E53935',
     fontWeight: '600',
+  },
+  tabIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    height: 3,
+    width: '60%',
+    backgroundColor: '#E53935',
+    borderTopLeftRadius: 2,
+    borderTopRightRadius: 2,
   },
   formContainer: {
     backgroundColor: '#ffffff',
@@ -392,7 +401,7 @@ const styles = StyleSheet.create({
     padding: 24,
     shadowColor: '#000',
     shadowOpacity: 0.08,
-    shadowOffset: {width: 0, height: 4},
+    shadowOffset: { width: 0, height: 4 },
     shadowRadius: 8,
     elevation: 3,
   },
@@ -429,13 +438,13 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     shadowColor: '#E53935',
     shadowOpacity: 0.3,
-    shadowOffset: {width: 0, height: 4},
+    shadowOffset: { width: 0, height: 4 },
     shadowRadius: 8,
     elevation: 4,
   },
   botonPressed: {
     backgroundColor: '#D32F2F',
-    transform: [{scale: 0.98}],
+    transform: [{ scale: 0.98 }],
   },
   botonText: {
     color: '#ffffff',
@@ -481,7 +490,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOpacity: 0.1,
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 8,
     elevation: 3,
     backgroundColor: '#ffffff',
@@ -503,7 +512,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.08,
-    shadowOffset: {width: 0, height: 4},
+    shadowOffset: { width: 0, height: 4 },
     shadowRadius: 8,
     elevation: 3,
     borderWidth: 2,
@@ -511,7 +520,7 @@ const styles = StyleSheet.create({
   },
   roleCardPressed: {
     borderColor: '#E53935',
-    transform: [{scale: 0.98}],
+    transform: [{ scale: 0.98 }],
   },
   roleIcon: {
     fontSize: 48,
