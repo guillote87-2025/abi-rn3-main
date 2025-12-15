@@ -3,24 +3,23 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-export default function HeaderReact()
-{
+export default function HeaderReact() {
     const router = useRouter();
     const [mail, setMail] = useState('');
     const [tipousuario, setTipoUsuario] = useState('');
     const [idusuario, setidusuario] = useState(2);
-    
+
     useEffect(() => {
-        (async() => {
-          setMail(await AsyncStorage.getItem('email') as any || '');
-          setTipoUsuario(await AsyncStorage.getItem('tipousuario') || '0');
-          setidusuario(Number(await AsyncStorage.getItem('id_tablausuario')) || 2);
+        (async () => {
+            setMail(await AsyncStorage.getItem('email') as any || '');
+            setTipoUsuario(await AsyncStorage.getItem('tipousuario') || '0');
+            setidusuario(Number(await AsyncStorage.getItem('id_tablausuario')) || 2);
         })();
     })
 
     const isLoggedIn = mail !== '';
     const getTipoUsuarioText = () => {
-        switch(tipousuario) {
+        switch (tipousuario) {
             case '1': return 'Jugador';
             case '2': return 'Director Técnico';
             case '3': return 'Administrador';
@@ -28,7 +27,7 @@ export default function HeaderReact()
         }
     };
 
-    return(
+    return (
         <View style={styles.container}>
             <View style={styles.topBar}>
                 <Text style={styles.logo}>⚽ FutbolApp</Text>
@@ -41,17 +40,23 @@ export default function HeaderReact()
                     </View>
                 )}
             </View>
-            
+
             <View style={styles.navContainer}>
-                <Pressable 
-                    style={({pressed}) => [styles.navButton, pressed && styles.navButtonPressed]} 
+                <Pressable
+                    style={({ pressed }) => [styles.navButton, pressed && styles.navButtonPressed]}
                     onPress={() => router.push("/")}>
                     <Text style={styles.navText}>🏠 Inicio</Text>
                 </Pressable>
 
+                <Pressable
+                    style={({ pressed }) => [styles.navButton, pressed && styles.navButtonPressed]}
+                    onPress={() => router.push("/partidos")}>
+                    <Text style={styles.navText}>🏆 Partidos</Text>
+                </Pressable>
+
                 {tipousuario !== '0' && tipousuario !== '' && tipousuario !== '3' && (
-                    <Pressable 
-                        style={({pressed}) => [styles.navButton, pressed && styles.navButtonPressed]} 
+                    <Pressable
+                        style={({ pressed }) => [styles.navButton, pressed && styles.navButtonPressed]}
                         onPress={() => router.push({
                             pathname: "/profile",
                             params: { id: idusuario, tipo: tipousuario }
@@ -61,16 +66,16 @@ export default function HeaderReact()
                 )}
 
                 {tipousuario === '2' && (
-                    <Pressable 
-                        style={({pressed}) => [styles.navButton, pressed && styles.navButtonPressed]} 
+                    <Pressable
+                        style={({ pressed }) => [styles.navButton, pressed && styles.navButtonPressed]}
                         onPress={() => router.push("/equipo")}>
                         <Text style={styles.navText}>⚽ Crear Equipo</Text>
                     </Pressable>
                 )}
 
                 {tipousuario === '3' && (
-                    <Pressable 
-                        style={({pressed}) => [styles.navButton, pressed && styles.navButtonPressed]} 
+                    <Pressable
+                        style={({ pressed }) => [styles.navButton, pressed && styles.navButtonPressed]}
                         onPress={() => router.push("/partido")}>
                         <Text style={styles.navText}>🏆 Crear Partido</Text>
                     </Pressable>
@@ -78,7 +83,7 @@ export default function HeaderReact()
 
                 {isLoggedIn ? (
                     <Pressable
-                        style={({pressed}) => [styles.logoutButton, pressed && styles.logoutButtonPressed]}
+                        style={({ pressed }) => [styles.logoutButton, pressed && styles.logoutButtonPressed]}
                         onPress={async () => {
                             await AsyncStorage.setItem('email', '');
                             await AsyncStorage.setItem('idusuario', '');
@@ -89,8 +94,8 @@ export default function HeaderReact()
                         <Text style={styles.logoutText}>🚪 Cerrar Sesión</Text>
                     </Pressable>
                 ) : (
-                    <Pressable 
-                        style={({pressed}) => [styles.loginButton, pressed && styles.loginButtonPressed]} 
+                    <Pressable
+                        style={({ pressed }) => [styles.loginButton, pressed && styles.loginButtonPressed]}
                         onPress={() => router.push("/sesion")}>
                         <Text style={styles.loginText}>🔐 Iniciar Sesión</Text>
                     </Pressable>
@@ -166,7 +171,7 @@ const styles = StyleSheet.create({
     },
     navButtonPressed: {
         backgroundColor: '#e0e0e0',
-        transform: [{scale: 0.97}],
+        transform: [{ scale: 0.97 }],
     },
     navText: {
         color: '#333',
@@ -183,7 +188,7 @@ const styles = StyleSheet.create({
     },
     loginButtonPressed: {
         backgroundColor: '#D32F2F',
-        transform: [{scale: 0.97}],
+        transform: [{ scale: 0.97 }],
     },
     loginText: {
         color: '#ffffff',
@@ -200,7 +205,7 @@ const styles = StyleSheet.create({
     },
     logoutButtonPressed: {
         backgroundColor: '#616161',
-        transform: [{scale: 0.97}],
+        transform: [{ scale: 0.97 }],
     },
     logoutText: {
         color: '#ffffff',

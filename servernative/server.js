@@ -252,14 +252,35 @@ async function addPartido(equipo1, equipo2, fecha)
         db = await connectBD();
         if(!db) return;
 
+        // Convertir fecha ISO a formato MySQL (YYYY-MM-DD HH:MM:SS)
+        let fechaMySQL;
+        if (fecha.includes('T')) {
+            // Si es formato ISO (2025-12-18T23:51:00.000Z)
+            const dateObj = new Date(fecha);
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            const hours = String(dateObj.getHours()).padStart(2, '0');
+            const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+            const seconds = String(dateObj.getSeconds()).padStart(2, '0');
+            
+            fechaMySQL = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        } else {
+            // Si ya está en formato MySQL
+            fechaMySQL = fecha;
+        }
+
+        console.log('Fecha original:', fecha);
+        console.log('Fecha MySQL:', fechaMySQL);
+
         let sql = 'INSERT INTO partidos (equipo1, equipo2, fecha) VALUES (?,?,?)'
-        await db.execute(sql, [equipo1, equipo2, fecha]);
+        await db.execute(sql, [equipo1, equipo2, fechaMySQL]);
 
         db.end();
         return 0;
     } catch(error)
     {
-        console.error(error);
+        console.error('Error en addPartido:', error);
     }
 }
 
@@ -558,6 +579,25 @@ async function cambiarEquipo(id_jugador, id_equipo)
         console.error(error);
     }
 }
+
+async function updatePartido(id, goles1, goles2, terminado)
+{
+    let db;
+    try
+    {
+        db = await connectBD();
+        if(!db) return;
+
+        let sql = 'UPDATE partidos SET goles1=?, goles2=?, terminado=? WHERE id=?';
+        await db.execute(sql, [goles1, goles2, terminado, id]);
+        
+        db.end();
+        return 0;
+    } catch(error)
+    {
+        console.error(error);
+    }
+}
   
 app.post('/editJugador', upload.none(), async function(req,res){
     const { email, password, oldmail, oldpassword, image, isGoogleUser, nombre, apellido, posicion } = req.body; //Valores del usuario
@@ -625,6 +665,28 @@ app.post('/editEquipo', upload.none(), async function(req,res){
     let id = await getUsuIDTabla(email);
 
     await editEquipo(nombre, id, imag)
+    .then(async result => {
+        res.json(result);
+    })
+    .catch(err => res.status(500).send(err));
+});
+
+// Ruta para agregar un nuevo partido
+app.post('/addPartido', express.json(), async function(req,res){
+    const { equipo1, equipo2, fecha } = req.body; //Valores del partido
+
+    await addPartido(equipo1, equipo2, fecha)
+    .then(async result => {
+        res.json(result);
+    })
+    .catch(err => res.status(500).send(err));
+});
+
+// Ruta para actualizar un partido existente
+app.post('/updatePartido', express.json(), async function(req,res){
+    const { id, goles1, goles2, terminado } = req.body;
+    
+    await updatePartido(id, goles1, goles2, terminado)
     .then(async result => {
         res.json(result);
     })
@@ -836,6 +898,8 @@ app.get('/getEquipos', async (req, res) => {
     let usu = await getAllEquipos();
     res.json(usu);
 });
+
+
 //Iniciando el servidor
 app.listen(port, () => {
     console.log(`Listening on http://localhost:${port}`);
